@@ -8,26 +8,20 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/go-kira/config"
+	"github.com/lafriakh/kira/modules/config"
 )
 
 // StartServer - Start kira server
-func (app *App) StartServer(addr string) {
-	// define the server
-	server := &http.Server{
-		Addr:    addr,
-		Handler: app.Router,
-	}
-
+func (app *App) StartServer(server *http.Server) {
 	// Gracefully shutdown
 	go app.GracefullyShutdown(server)
 
 	// Start server
-	app.Log.Infof("Starting HTTP server, Listening at %q \n", "http://"+server.Addr)
+	app.logger.Infof("Starting HTTP server, Listening at %q \n", "http://"+server.Addr)
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
-		app.Log.Errorf("%v", err)
+		app.logger.Errorf("%v", err)
 	} else {
-		app.Log.Infof("Server closed!")
+		app.logger.Infof("Server closed!")
 	}
 }
 
@@ -36,26 +30,21 @@ func (app *App) StartServer(addr string) {
 //  - openssl genrsa -out server.key 2048
 //  - openssl ecparam -genkey -name secp384r1 -out server.key
 //  - openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650
-func (app *App) StartTLSServer(addr string) {
-	server := &http.Server{
-		Addr:    addr,
-		Handler: app.Router,
-	}
-
+func (app *App) StartTLSServer(server *http.Server) {
 	// Gracefully shutdown
 	go app.GracefullyShutdown(server)
 
 	// Start server
-	app.Log.Infof("Starting HTTPS server, Listening at %q \n", "https://"+server.Addr)
+	app.logger.Infof("Starting HTTPS server, Listening at %q \n", "https://"+server.Addr)
 
 	// Certificate & Key
 	certificateFile := app.Configs.GetString("server.tls_certificate", "./server.crt")
 	keyFile := app.Configs.GetString("server.tls_key", "./server.key")
 
 	if err := server.ListenAndServeTLS(certificateFile, keyFile); err != http.ErrServerClosed {
-		app.Log.Errorf("%v", err)
+		app.logger.Errorf("%v", err)
 	} else {
-		app.Log.Infof("Server closed!")
+		app.logger.Infof("Server closed!")
 	}
 }
 
@@ -65,10 +54,10 @@ func (app *App) GracefullyShutdown(server *http.Server) {
 	signal.Notify(sigquit, os.Interrupt, syscall.SIGTERM)
 
 	sig := <-sigquit
-	app.Log.Infof("Signal to shutdown the server: %+v", sig)
+	app.logger.Infof("Signal to shutdown the server: %+v", sig)
 
 	if err := server.Shutdown(context.Background()); err != nil {
-		app.Log.Fatalf("Unable to shutdown server: %v", err)
+		app.logger.Fatalf("Unable to shutdown server: %v", err)
 	}
 }
 

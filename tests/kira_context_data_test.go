@@ -5,14 +5,22 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-kira/kira"
-	"github.com/go-kira/kira/tests/app/middleware"
+	"github.com/lafriakh/kira"
+	"github.com/lafriakh/kira/tests/app/middleware"
 )
 
 func TestContextData(t *testing.T) {
 	s := endpoint("GET", "/data", func(c *kira.Context) {
 		// Set the data to the context.
 		c.SetData("key", "value")
+
+		if c.HasData("key") != true {
+			t.Errorf("expect: `true`, have: %t", c.HasData("key"))
+		}
+
+		if c.HasData("key_not_exists") != false {
+			t.Errorf("expect: `false`, have: %t", c.HasData("key_not_exists"))
+		}
 
 		// Get the data from the context.
 		if c.GetData("key").(string) != "value" {

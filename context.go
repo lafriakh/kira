@@ -2,20 +2,13 @@ package kira
 
 import (
 	"fmt"
+	"github.com/lafriakh/kira/modules/log"
 	"net/http"
-	"sync"
+	"strconv"
+	"time"
 
-	"github.com/go-kira/log"
-
-	"github.com/go-kira/config"
+	"github.com/lafriakh/kira/modules/config"
 )
-
-// Context pool
-var contextPool = &sync.Pool{
-	New: func() interface{} {
-		return &Context{}
-	},
-}
 
 // HandlerFunc - Type to define context function
 type HandlerFunc func(*Context)
@@ -27,7 +20,10 @@ type Context struct {
 	logger   *log.Logger
 	configs  *config.Config
 	// The data associated with the request.
-	data map[string]interface{}
+	data       map[string]any
+	statusCode int
+	requestID  string
+	startAt    time.Time
 	// environment
 	env string
 }
@@ -37,9 +33,9 @@ type Context struct {
 // 	ctx := contextPool.Get().(*Context)
 // 	ctx.response = w
 // 	ctx.request = r
-// 	ctx.Logger = app.Log
+// 	ctx.Logger = app.logger
 // 	ctx.Configs = app.Configs
-// 	ctx.data = make(map[string]interface{})
+// 	ctx.data = make(map[string]any)
 // 	ctx.env = app.Env
 //
 // 	return ctx
@@ -65,13 +61,6 @@ func (c *Context) Response() http.ResponseWriter {
 	return c.response
 }
 
-// WriteStatus Write HTTP header to the response and also write the status message to the body.
-func (c *Context) WriteStatus(code int) {
-	c.Response().WriteHeader(code)
-
-	fmt.Fprint(c.Response(), http.StatusText(code))
-}
-
 // Redirect replies to the request with a redirect to url,
 func (c *Context) Redirect(url string, code int) {
 	http.Redirect(c.Response(), c.Request(), url, code)
@@ -79,7 +68,13 @@ func (c *Context) Redirect(url string, code int) {
 
 // Log gets the Log instance.
 func (c *Context) Log() *log.Logger {
-	return c.logger
+	return setupLogger(c.Config(), c.logger.Writer, log.Fields{
+		"status":     strconv.Itoa(c.StatusCode()),
+		"method":     c.Request().Method,
+		"path":       c.Request().RequestURI,
+		"duration":   time.Since(c.startAt).String(),
+		"request_id": c.RequestID(),
+	})
 }
 
 // Config gets the application configs.
@@ -87,22 +82,42 @@ func (c *Context) Config() *config.Config {
 	return c.configs
 }
 
+// Code sets response status statusCode.
+func (c *Context) SetStatusCode(code int) {
+	c.statusCode = code
+}
+
+// Code gets response status statusCode.
+func (c *Context) StatusCode() int {
+	return c.statusCode
+}
+
+// Code sets response status statusCode.
+func (c *Context) SetRequestID(id string) {
+	c.requestID = id
+}
+
+// Code gets response status statusCode.
+func (c *Context) RequestID() string {
+	return c.requestID
+}
+
 // Env gets the application environment.
 func (c *Context) Env() string {
 	return c.env
 }
 
-// Status send a specific status with the HTTP reply.
-func (c *Context) Status(code int) {
-	c.Response().WriteHeader(code)
+// Error stop the request with panic
+func (c *Context) Error(msg any) {
+	// Just panic and the recover will come to save us :)
+	// TODO: later we need something better than this.
+	panic(fmt.Sprint(msg))
 }
 
-// Error stop the request with panic
-func (c *Context) Error(msg interface{}, status ...int) {
-	if len(status) > 0 {
-		c.Status(status[0])
+// Err checks if the error not empty.
+// It's will redirect the error to Error method if there an error.
+func (c *Context) Err(err error) {
+	if err != nil {
+		c.Error(err)
 	}
-
-	// Just panic and the recover will come to save us :)
-	panic(fmt.Sprint(msg))
 }

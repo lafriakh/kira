@@ -1,9 +1,8 @@
 package kira
 
 import (
-	"net/http"
-
 	"github.com/julienschmidt/httprouter"
+	"net/http"
 )
 
 // Route represent a route.
@@ -46,6 +45,14 @@ func (app *App) RegisterRoutes() *httprouter.Router {
 		app.Router.NotFound = buildRoute(app, app.NotFoundHandler, nil)
 	}
 
+	// Handle panic
+	app.Router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err any) {
+		var panicHandler = func(ctx *Context) {
+			defaultPanic(ctx, err)
+		}
+		buildRoute(app, panicHandler, nil)(w, r)
+	}
+
 	return app.Router
 }
 
@@ -58,7 +65,7 @@ func buildMiddleware(middleware Middleware, next HandlerFunc) HandlerFunc {
 	}
 }
 
-// buildRoute create the context for the route and attach the middlwares to it if exists.
+// buildRoute create the context for the route and attach the middlewares to it if exists.
 func buildRoute(app *App, handler HandlerFunc, rm []Middleware) http.HandlerFunc {
 	// Route middlewares
 	if len(rm) > 0 {
@@ -67,37 +74,29 @@ func buildRoute(app *App, handler HandlerFunc, rm []Middleware) http.HandlerFunc
 		}
 	}
 
+	// Assign default middlewares to all handlers.
+	for _, defaultMiddleware := range defaultMiddlewares() {
+		handler = buildMiddleware(defaultMiddleware, handler)
+	}
+
 	// Global Middlewares
 	if len(app.Middlewares) > 0 {
 		for _, m := range app.Middlewares {
-			// except := app.Configs.GetSliceString("excluded_middleware." + m.Name())
-			//
-			// // Move to the next router if the route is nil.
-			// if route == nil || helpers.Contains(except, "*") {
-			// 	continue
-			// }
-			//
-			// if !helpers.Contains(except, route.Path) {
-			// 	handler = middlewareHandler(m, handler)
-			// }
 			handler = buildMiddleware(m, handler)
 		}
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Root context.
-		// TODO
-		//  - Set default values in the context.
-		//  - Like request id, csrf...
 		ctx := app.pool.Get().(*Context)
-		ctx.response = w
+		ctx.response = &responseWriter{w, ctx}
 		ctx.request = r
 
 		// Run the chain
 		handler(ctx)
 
 		// Release the pool
-		contextPool.Put(ctx)
+		app.pool.Put(ctx)
 	}
 }
 

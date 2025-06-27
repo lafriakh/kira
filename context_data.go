@@ -1,12 +1,12 @@
 package kira
 
 // SetData ...
-func (c *Context) SetData(key string, data interface{}) {
+func (c *Context) SetData(key string, data any) {
 	c.data[key] = data
 }
 
 // GetData ...
-func (c *Context) GetData(key string) interface{} {
+func (c *Context) GetData(key string) any {
 	return c.data[key]
 }
 

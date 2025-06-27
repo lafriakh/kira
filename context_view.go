@@ -7,7 +7,7 @@ import (
 )
 
 // View send an html/template with an HTTP reply.
-func (c *Context) View(temps string, data ...interface{}) error {
+func (c *Context) View(temps string, data ...any) error {
 	// Set content type
 	c.Response().Header().Set("Content-Type", "text/html")
 
@@ -27,7 +27,7 @@ func (c *Context) View(temps string, data ...interface{}) error {
 }
 
 // ViewToString parse a template and return the parsed template as a string.
-func (c *Context) ViewToString(temps string, data ...interface{}) (string, error) {
+func (c *Context) ViewToString(temps string, data ...any) (string, error) {
 	template, err := parseView(c, temps, data)
 	if err != nil {
 		return "", err

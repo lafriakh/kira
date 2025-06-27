@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-kira/kira"
+	"github.com/lafriakh/kira"
 )
 
 type mockFileSystem struct {

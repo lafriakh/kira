@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-kira/kira"
-	"github.com/go-kira/kira/tests/app/middleware"
+	"github.com/lafriakh/kira"
+	"github.com/lafriakh/kira/tests/app/middleware"
 )
 
 func TestMiddleware(t *testing.T) {

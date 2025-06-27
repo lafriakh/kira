@@ -10,10 +10,10 @@ install:
   - go mod download
   - export PATH="${GOPATH}/bin:${GOROOT}/bin:${PATH}"
 
-go_import_path: github.com/go-kira/kira
+go_import_path: github.com/lafriakh/kira
 
 script:
-  - go test -race -coverprofile=./coverage.txt -covermode=atomic -coverpkg=github.com/go-kira/kira ./tests
+  - go test -race -coverprofile=./coverage.txt -covermode=atomic -coverpkg=github.com/lafriakh/kira ./tests
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

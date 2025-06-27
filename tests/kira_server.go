@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http/httptest"
 
-	"github.com/go-kira/kira"
+	"github.com/lafriakh/kira"
 )
 
 func endpoint(method string, path string, handler kira.HandlerFunc) *httptest.Server {

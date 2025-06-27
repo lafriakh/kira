@@ -5,8 +5,13 @@ import (
 )
 
 // JSON - Send response as json.
-func (c *Context) JSON(data interface{}) {
+func (c *Context) JSON(data any, code ...int) {
 	c.Response().Header().Set("Content-Type", "application/json")
+
+	// Status statusCode
+	if len(code) > 0 {
+		c.Status(code[0])
+	}
 
 	// Encode data
 	if err := json.NewEncoder(c.Response()).Encode(data); err != nil {
@@ -20,6 +25,6 @@ func (c *Context) WantsJSON() bool {
 }
 
 // DecodeJSON - convert json from request body to interface.
-func (c *Context) DecodeJSON(dst interface{}) error {
+func (c *Context) DecodeJSON(dst any) error {
 	return json.NewDecoder(c.Request().Body).Decode(dst)
 }

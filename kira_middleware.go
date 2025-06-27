@@ -15,3 +15,10 @@ func (app *App) Middleware(middlewares ...Middleware) {
 func (app *App) Use(middlewares ...Middleware) {
 	app.Middleware(middlewares...)
 }
+
+func defaultMiddlewares() (mds []Middleware) {
+	mds = append(mds, NewRequestID())
+	mds = append(mds, NewLogger())
+
+	return mds
+}

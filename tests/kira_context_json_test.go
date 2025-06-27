@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/go-kira/kira"
+	"github.com/lafriakh/kira"
 )
 
 func TestContextJSON(t *testing.T) {

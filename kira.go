@@ -7,12 +7,14 @@ package kira
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
-	"github.com/go-kira/config"
-	"github.com/go-kira/log"
+	"github.com/lafriakh/kira/modules/config"
+	"github.com/lafriakh/kira/modules/log"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -29,23 +31,25 @@ const (
 	GB = 1 << 30
 )
 
-// Map a type to represent map, this will be used alot in the internal code.
-type Map map[string]interface{}
+// Map a type to represent map, this will be used alot in the internal statusCode.
+type Map map[string]any
 
 // App hold the framework options
 type App struct {
 	Routes      []*Route
 	Middlewares []Middleware
 	Router      *httprouter.Router
-	Log         *log.Logger
 	Configs     *config.Config
 	Env         string
-
 	// Not found handler
 	NotFoundHandler HandlerFunc
 
+	// Logger
+	logger *log.Logger
+
 	// Context pool
-	pool *sync.Pool
+	pool  *sync.Pool
+	mutex sync.Mutex
 }
 
 // New init the framework
@@ -53,17 +57,20 @@ func New() *App {
 	app := &App{}
 	app.Env = getEnv()
 	app.Configs = getConfig()
-	app.Log = setupLogger(app.Configs)
 	app.Router = httprouter.New()
+	app.logger = setupLogger(app.Configs, setupWriter(app.Configs), log.Fields{})
 
 	// Context pool
 	app.pool = &sync.Pool{
-		New: func() interface{} {
+		New: func() any {
 			return &Context{
-				logger:  app.Log,
-				configs: app.Configs,
-				data:    make(map[string]interface{}),
-				env:     app.Env,
+				logger:     app.logger,
+				configs:    app.Configs,
+				data:       make(map[string]any),
+				env:        app.Env,
+				statusCode: http.StatusOK,
+				requestID:  uuid.New().String(),
+				startAt:    time.Now(),
 			}
 		},
 	}
@@ -73,34 +80,53 @@ func New() *App {
 }
 
 // Run the framework
-func (a *App) Run(addr ...string) *App {
+func (app *App) Run(args ...any) *App {
 	fmt.Printf("%v", hero)
 
 	// Register the application routes
-	a.RegisterRoutes()
+	app.RegisterRoutes()
 
 	// Timezone
-	tz := a.Configs.GetString("app.timezone")
+	tz := app.Configs.GetString("app.timezone")
 	if tz != "" {
-		// Now the framework will parse all the times in the given Timezone.
 		os.Setenv("TZ", tz)
 	}
 
-	// TCP address
-	serverAddr := serverAddr(a.Configs, addr...)
-	if !a.Configs.GetBool("server.tls", false) {
-		a.StartServer(serverAddr)
+	// Server
+	server := &http.Server{
+		Handler: app.Router,
+	}
+
+	var config any
+	if len(args) > 0 {
+		config = args[0]
 	} else {
-		a.StartTLSServer(serverAddr)
+		config = nil
+	}
+
+	switch config.(type) {
+	case *http.Server:
+		server = config.(*http.Server)
+		server.Handler = app.Router
+	case string:
+		server.Addr = serverAddr(app.Configs, config.(string))
+	default:
+		server.Addr = serverAddr(app.Configs)
+	}
+
+	if !app.Configs.GetBool("server.tls", false) {
+		app.StartServer(server)
+	} else {
+		app.StartTLSServer(server)
 	}
 
 	// App instance
-	return a
+	return app
 }
 
 // NotFound custom not found handler.
-func (a *App) NotFound(ctx HandlerFunc) {
-	a.NotFoundHandler = ctx
+func (app *App) NotFound(ctx HandlerFunc) {
+	app.NotFoundHandler = ctx
 }
 
 // default not found handler.

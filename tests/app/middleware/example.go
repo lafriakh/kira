@@ -1,6 +1,6 @@
 package middleware
 
-import "github.com/go-kira/kira"
+import "github.com/lafriakh/kira"
 
 // Example
 type Example struct{}

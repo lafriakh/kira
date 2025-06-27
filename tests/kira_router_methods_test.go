@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/go-kira/kira"
+	"github.com/lafriakh/kira"
 )
 
 func TestGET(t *testing.T) {

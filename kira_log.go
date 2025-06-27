@@ -4,16 +4,13 @@ import (
 	"io"
 	"os"
 
-	"github.com/go-kira/config"
-	"github.com/go-kira/log"
+	"github.com/lafriakh/kira/modules/config"
+	"github.com/lafriakh/kira/modules/log"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
-func setupLogger(config *config.Config) *log.Logger {
-	logger := log.New(
-		setupWriter(config),
-		setupFormatter(),
-	)
+func setupLogger(config *config.Config, w io.Writer, fields log.Fields) *log.Logger {
+	logger := log.New(w, setupFormatter(config), fields)
 	logger.SetLevel(log.LevelStrings[config.GetString("log.level", "info")])
 
 	return logger
@@ -41,8 +38,14 @@ func setupWriter(config *config.Config) io.Writer {
 }
 
 // setupFormatter to setup the logger formatter.
-func setupFormatter() log.Formatter {
-	// TODO
-	// - Add color formatter
+func setupFormatter(config *config.Config) log.Formatter {
+	switch config.GetString("log.formatter") {
+	case "default":
+	case "cli":
+		return log.NewDefaultFormatter()
+	case "json":
+		return log.NewJSONFormatter()
+	}
+
 	return log.NewDefaultFormatter()
 }

@@ -9,7 +9,7 @@ import (
 )
 
 // parse the view and return the view template and the view data.
-func parseView(c *Context, temps string, data ...interface{}) (*template.Template, error) {
+func parseView(c *Context, temps string, data ...any) (*template.Template, error) {
 	fileSuffix := c.Config().GetString("views.file_suffix", ".go.html")
 	viewPath := c.Config().GetString("views.path", "./app/views/")
 
@@ -38,7 +38,7 @@ func parseView(c *Context, temps string, data ...interface{}) (*template.Templat
 	return template, nil
 }
 
-func parseViewData(data ...interface{}) interface{} {
+func parseViewData(data ...any) any {
 	if len(data) > 0 {
 		return data[0]
 	}
@@ -51,10 +51,10 @@ func viewFuncs(ctx *Context) template.FuncMap {
 		"env": func() string {
 			return ctx.Env()
 		},
-		"data": func(key string) interface{} {
+		"data": func(key string) any {
 			return ctx.GetData(key)
 		},
-		"config": func(key string) interface{} {
+		"config": func(key string) any {
 			return ctx.Config().Get(key)
 		},
 		"url": func() string {
@@ -64,17 +64,21 @@ func viewFuncs(ctx *Context) template.FuncMap {
 			// first arg is sep, remaining args are strings to join
 			return strings.Join(s[1:], s[0])
 		},
-		"include": func(filename string) (string, error) {
-			return ctx.ViewToString(filename)
+		"partial": func(filename string, data ...any) (template.HTML, error) {
+			st, err := ctx.ViewToString(filename, data...)
+			if err != nil {
+				return "", err
+			}
+			return template.HTML(st), nil
 		},
-		"json": func(v interface{}) template.JS {
+		"json": func(v any) template.JS {
 			js, _ := json.Marshal(v)
 			return template.JS(js)
 		},
-		"html": func(value interface{}) template.HTML {
+		"html": func(value any) template.HTML {
 			return template.HTML(fmt.Sprint(value))
 		},
-		"htmlEscape": func(value interface{}) string {
+		"htmlEscape": func(value any) string {
 			return template.HTMLEscapeString(fmt.Sprint(value))
 		},
 	}

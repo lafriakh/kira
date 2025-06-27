@@ -23,8 +23,9 @@ func (c *Context) WriteString(s string) {
 }
 
 // WriteStringf formats according to a format specifier and writes the resulting to the request response.
-func (c *Context) WriteStringf(format string, a ...interface{}) {
-	fmt.Fprintf(c.Response(), format, a...)
+func (c *Context) WriteStringf(format string, a ...any) {
+	_, err := fmt.Fprintf(c.Response(), format, a...)
+	c.Err(err)
 }
 
 // WriteHTML send content of html with the HTTP reply as an HTML content.
@@ -34,6 +35,19 @@ func (c *Context) WriteHTML(html string) {
 	if err != nil {
 		c.Error(err)
 	}
+}
+
+// WriteStatus Write HTTP header to the response and also write the status message to the body.
+func (c *Context) WriteStatus(code int) {
+	c.Response().WriteHeader(code)
+
+	_, err := fmt.Fprint(c.Response(), http.StatusText(code))
+	c.Err(err)
+}
+
+// Status send a specific status with the HTTP reply.
+func (c *Context) Status(code int) {
+	c.Response().WriteHeader(code)
 }
 
 // File send a file with the HTTP reply.
