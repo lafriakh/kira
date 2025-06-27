@@ -104,12 +104,12 @@ func (app *App) Run(args ...any) *App {
 		config = nil
 	}
 
-	switch config.(type) {
+	switch config := config.(type) {
 	case *http.Server:
-		server = config.(*http.Server)
+		server = config
 		server.Handler = app.Router
 	case string:
-		server.Addr = serverAddr(app.Configs, config.(string))
+		server.Addr = serverAddr(app.Configs, config)
 	default:
 		server.Addr = serverAddr(app.Configs)
 	}
