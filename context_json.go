@@ -2,7 +2,11 @@ package kira
 
 import (
 	"encoding/json"
+	"io"
+	"net/http"
 )
+
+var ErrEmptyBody = E("empty body", http.StatusBadRequest)
 
 // JSON - Send response as json.
 func (c *Context) JSON(data any, code ...int) {
@@ -26,5 +30,10 @@ func (c *Context) WantsJSON() bool {
 
 // DecodeJSON - convert json from request body to interface.
 func (c *Context) DecodeJSON(dst any) error {
-	return json.NewDecoder(c.Request().Body).Decode(dst)
+	err := json.NewDecoder(c.Request().Body).Decode(dst)
+	if err == io.EOF {
+		return ErrEmptyBody
+	}
+
+	return nil
 }

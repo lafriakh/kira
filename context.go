@@ -2,10 +2,11 @@ package kira
 
 import (
 	"fmt"
-	"github.com/lafriakh/kira/modules/log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/lafriakh/kira/modules/log"
 
 	"github.com/lafriakh/kira/modules/config"
 )
@@ -108,10 +109,14 @@ func (c *Context) Env() string {
 }
 
 // Error stop the request with panic
-func (c *Context) Error(msg any) {
+func (c *Context) Error(err error) {
 	// Just panic and the recover will come to save us :)
 	// TODO: later we need something better than this.
-	panic(fmt.Sprint(msg))
+	if kiraErr, ok := err.(*KiraError); ok {
+		panic(kiraErr)
+	}
+
+	panic(fmt.Sprint(err))
 }
 
 // Err checks if the error not empty.

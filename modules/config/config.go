@@ -48,9 +48,7 @@ func NewFromFile(files ...string) *Config {
 	kon := New()
 
 	for _, file := range files {
-		// The template is exists.
 		if _, err := os.Stat(file); !os.IsNotExist(err) {
-			// Read the file.
 			data, err := os.Open(file)
 			if err != nil {
 				log.Fatal(err)

@@ -26,7 +26,6 @@ func (c *CSRF) Middleware(ctx *kira.Context, next kira.HandlerFunc) {
 		ctx.SetRequest(r)
 		ctx.SetResponse(w)
 
-		// Continue
 		next(ctx)
 	})
 

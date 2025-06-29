@@ -2,7 +2,6 @@ package kira
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -14,11 +13,11 @@ import (
 func getEnv() string {
 	// Get the environment from .kira_env file.
 	if _, err := os.Stat("./.kira_env"); !os.IsNotExist(err) {
-		kiraEnv, err := ioutil.ReadFile("./.kira_env")
+		env, err := os.ReadFile("./.kira_env")
 		if err != nil {
 			log.Panic(err)
 		}
-		return strings.TrimSpace(string(kiraEnv))
+		return strings.TrimSpace(string(env))
 	}
 
 	// Get the environment from system variable

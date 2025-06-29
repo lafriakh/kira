@@ -3,7 +3,6 @@ package tests
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http/httptest"
 
 	"github.com/lafriakh/kira"
@@ -37,7 +36,7 @@ func url(server *httptest.Server, path string) string {
 }
 
 func contentS(r io.Reader) string {
-	content, err := ioutil.ReadAll(r)
+	content, err := io.ReadAll(r)
 	if err != nil {
 		panic(err)
 	}
@@ -46,5 +45,5 @@ func contentS(r io.Reader) string {
 }
 
 func content(r io.Reader) ([]byte, error) {
-	return ioutil.ReadAll(r)
+	return io.ReadAll(r)
 }

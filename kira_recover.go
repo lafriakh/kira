@@ -3,6 +3,7 @@ package kira
 import (
 	"fmt"
 	"runtime"
+	"time"
 )
 
 // ErrorFrame ...
@@ -14,22 +15,19 @@ type ErrorFrame struct {
 
 // ErrorJSON ...
 type ErrorJSON struct {
-	Message string       `json:"message"`
-	Frames  []ErrorFrame `json:"frames,omitempty"`
+	Error  string       `json:"error"`
+	Frames []ErrorFrame `json:"frames,omitempty"`
 }
 
 // Middleware handler.
 func defaultPanic(ctx *Context, err any) {
-	// log the error
 	ctx.Log().Errorf("%s", err)
 
-	// Headers
 	if ctx.WantsJSON() {
 		ctx.Response().Header().Set("Content-Type", "application/json")
 	} else {
 		ctx.Response().Header().Set("Content-Type", "text/html")
 	}
-	//ctx.Status(http.StatusInternalServerError)
 
 	// if the debug mode is enabled, add the stack to the error view
 	if ctx.Config().GetBool("app.debug", false) {
@@ -43,8 +41,8 @@ func defaultPanic(ctx *Context, err any) {
 				})
 			}
 			ctx.JSON(ErrorJSON{
-				Message: fmt.Sprintf("%s", err),
-				Frames:  frames,
+				Error:  fmt.Sprintf("%s", err),
+				Frames: frames,
 			})
 		} else { // HTML
 			if ctx.ViewExists("error/debug") {
@@ -66,8 +64,16 @@ func defaultPanic(ctx *Context, err any) {
 
 	// Normal mode
 	if ctx.WantsJSON() {
+		kiraErr, ok := err.(*KiraError)
+		if ok {
+			ctx.Status(int(kiraErr.Status))
+			kiraErr.Timestamp = time.Now().UTC()
+			ctx.JSON(err)
+			return
+		}
+
 		ctx.JSON(ErrorJSON{
-			Message: fmt.Sprintf("%s", err),
+			Error: fmt.Sprintf("%s", err),
 		})
 	} else {
 		if ctx.ViewExists("errors/500") {

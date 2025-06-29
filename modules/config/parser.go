@@ -19,7 +19,6 @@ func Parse(src io.Reader) (map[string]any, error) {
 	// Start reading from the reader using a scanner.
 	scanner := bufio.NewScanner(src)
 	for scanner.Scan() {
-		// the line.
 		line := scanner.Text()
 
 		// Skip the line if we start with hashtag.
@@ -30,26 +29,22 @@ func Parse(src io.Reader) (map[string]any, error) {
 		before := beforeDelimiter(line, delimiter)
 		after := afterDelimiter(line, delimiter)
 
-		// if one of the above is empty ignore that line.
 		if before == "" || after == "" {
 			continue
 		}
 
-		// log.Debug(after)
 		afterString := after.(string)
-		// log.Debug(afterString)
-		// log.Debug("first:", afterString[:1], " | last:", afterString[len(afterString)-1:])
 
 		if afterString[:1] == `"` && afterString[len(afterString)-1:] == `"` { // String
-			data[before[:len(before)]] = afterString[1 : len(afterString)-1]
+			data[before[:]] = afterString[1 : len(afterString)-1]
 		} else if toInt, err := strconv.ParseInt(afterString, 10, 64); err == nil { // Number
-			data[before[:len(before)]] = toInt
+			data[before[:]] = toInt
 		} else if toFloat, err := strconv.ParseFloat(afterString, 64); err == nil { // float
-			data[before[:len(before)]] = toFloat
+			data[before[:]] = toFloat
 		} else if toBool, err := strconv.ParseBool(afterString); err == nil { // bool
-			data[before[:len(before)]] = toBool
+			data[before[:]] = toBool
 		} else {
-			data[before[:len(before)]] = after
+			data[before[:]] = after
 		}
 	}
 
@@ -75,5 +70,5 @@ func afterDelimiter(value string, a string) any {
 	if pos == -1 {
 		return nil
 	}
-	return strings.TrimSpace(value[pos+1 : len(value)])
+	return strings.TrimSpace(value[pos+1:])
 }
