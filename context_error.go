@@ -27,9 +27,9 @@ type KiraError struct {
 	Status      StatusCode   `json:"status,omitempty"`
 	Path        Path         `json:"path,omitempty"`
 	Message     string       `json:"message"`
-	FieldError  string       `json:"error,omitempty"`
+	// FieldError  string       `json:"error,omitempty"`
 	FieldErrors []FieldError `json:"errors,omitempty"`
-	Timestamp   time.Time    `json:"timestamp,omitempty"`
+	Timestamp   time.Time    `json:"timestamp"`
 
 	Err error `json:"-"`
 }
@@ -50,7 +50,6 @@ func E(args ...any) error {
 			e.Err = errors.New(arg)
 		case StatusCode:
 			e.Status = arg
-			e.FieldError = http.StatusText(int(arg))
 		case Path:
 			e.Path = arg
 		case *KiraError:
@@ -85,7 +84,7 @@ func (e *KiraError) Error() string {
 
 	if e.Status != 0 {
 		pad(b, ": ")
-		b.WriteString(string(e.Status))
+		fmt.Fprint(b, http.StatusText(int(e.Status)))
 	}
 	if e.Path != "" {
 		pad(b, ": ")

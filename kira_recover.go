@@ -15,7 +15,8 @@ type ErrorFrame struct {
 
 // ErrorJSON ...
 type ErrorJSON struct {
-	Error  string       `json:"error"`
+	Title  string       `json:"error"`
+	Errors []string     `json:"errors"`
 	Frames []ErrorFrame `json:"frames,omitempty"`
 }
 
@@ -40,10 +41,26 @@ func defaultPanic(ctx *Context, err any) {
 					Line: frame.Line,
 				})
 			}
-			ctx.JSON(ErrorJSON{
-				Error:  fmt.Sprintf("%s", err),
-				Frames: frames,
-			})
+
+			kiraErr, ok := err.(*KiraError)
+			if ok {
+				var errors []string
+				for _, er := range kiraErr.FieldErrors {
+					errors = append(errors, fmt.Sprintf("%s: %s", er.Field, er.Value))
+				}
+
+				ctx.JSON(ErrorJSON{
+					Title: kiraErr.Message,
+					Errors: errors,
+					Frames: frames,
+				})
+			} else {
+				ctx.JSON(ErrorJSON{
+					Title: "Unexpected error happend",
+					Frames: frames,
+				})
+			}
+
 		} else { // HTML
 			if ctx.ViewExists("error/debug") {
 				ctx.View("errors/debug", Map{
