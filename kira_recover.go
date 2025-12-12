@@ -90,7 +90,7 @@ func defaultPanic(ctx *Context, err any) {
 		}
 
 		ctx.JSON(ErrorJSON{
-			Error: fmt.Sprintf("%s", err),
+			Errors: []string{fmt.Sprintf("%s", err)},
 		})
 	} else {
 		if ctx.ViewExists("errors/500") {
