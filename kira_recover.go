@@ -15,7 +15,7 @@ type ErrorFrame struct {
 
 // ErrorJSON ...
 type ErrorJSON struct {
-	Title  string       `json:"error"`
+	Title  string       `json:"title"`
 	Errors []string     `json:"errors"`
 	Frames []ErrorFrame `json:"frames,omitempty"`
 }
@@ -46,7 +46,7 @@ func defaultPanic(ctx *Context, err any) {
 			if ok {
 				var errors []string
 				for _, er := range kiraErr.FieldErrors {
-					errors = append(errors, fmt.Sprintf("%s: %s", er.Field, er.Value))
+					errors = append(errors, fmt.Sprintf("%s: %s - %s", er.Field, er.Tag, er.Param))
 				}
 
 				ctx.JSON(ErrorJSON{
