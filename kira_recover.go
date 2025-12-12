@@ -1,6 +1,7 @@
 package kira
 
 import (
+	"bytes"
 	"fmt"
 	"runtime"
 	"time"
@@ -46,17 +47,23 @@ func defaultPanic(ctx *Context, err any) {
 			if ok {
 				var errors []string
 				for _, er := range kiraErr.FieldErrors {
-					errors = append(errors, fmt.Sprintf("%s: %s - %s", er.Field, er.Tag, er.Param))
+					message := new(bytes.Buffer)
+					fmt.Fprintf(message, "%s: %s", er.Field, er.Tag)
+					if len(er.Param) > 0 {
+						fmt.Fprintf(message, " - %s", er.Param)
+					}
+
+					errors = append(errors, message.String())
 				}
 
 				ctx.JSON(ErrorJSON{
-					Title: kiraErr.Message,
+					Title:  kiraErr.Message,
 					Errors: errors,
 					Frames: frames,
 				})
 			} else {
 				ctx.JSON(ErrorJSON{
-					Title: "Unexpected error happend",
+					Title:  "Unexpected error happend",
 					Frames: frames,
 				})
 			}
