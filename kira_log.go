@@ -44,7 +44,7 @@ func setupFormatter(config *config.Config) log.Formatter {
 	case "cli":
 		return log.NewDefaultFormatter()
 	case "json":
-		return log.NewJSONFormatter()
+		return log.NewJSONFormatter(config.GetBool("log.json.pretty"))
 	}
 
 	return log.NewDefaultFormatter()

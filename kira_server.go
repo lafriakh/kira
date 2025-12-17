@@ -17,7 +17,7 @@ func (app *App) StartServer(server *http.Server) {
 	go app.GracefullyShutdown(server)
 
 	// Start server
-	app.logger.Infof("Starting HTTP server, Listening at %q \n", "http://"+server.Addr)
+	app.logger.Infof("Starting HTTP server, Listening at %s", "http://"+server.Addr)
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
 		app.logger.Errorf("%v", err)
 	} else {

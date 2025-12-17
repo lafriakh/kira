@@ -12,5 +12,5 @@ func NewLogger() *Log {
 func (l *Log) Middleware(ctx *Context, next HandlerFunc) {
 	next(ctx)
 
-	ctx.Log().Info("Request end")
+	ctx.Log().Info("Request")
 }

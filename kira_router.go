@@ -91,12 +91,12 @@ func buildRoute(app *App, handler HandlerFunc, rm []Middleware) http.HandlerFunc
 		ctx := app.pool.Get().(*Context)
 		ctx.response = &responseWriter{w, ctx}
 		ctx.request = r
+		// Release the pool
+		defer app.pool.Put(ctx)
 
 		// Run the chain
 		handler(ctx)
 
-		// Release the pool
-		app.pool.Put(ctx)
 	}
 }
 

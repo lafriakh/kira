@@ -43,6 +43,13 @@ func (k *Config) Set(key string, value any) {
 	k.bucket[key] = value
 }
 
+func (k *Config) Has(key string) bool {
+	k.lock.Lock()
+	defer k.lock.Unlock()
+
+	return k.bucket[key] != nil
+}
+
 // NewFromFile - read a file and return the configuration.
 func NewFromFile(files ...string) *Config {
 	kon := New()

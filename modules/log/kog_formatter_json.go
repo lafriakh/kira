@@ -22,20 +22,21 @@ import (
 
 // JSONFormatter to format the log into json format.
 type JSONFormatter struct {
-	Level   string      `json:"level,omitempty"`
-	Time    string      `json:"time,omitempty"`
-	Message any `json:"message,omitempty"`
-	Fields  Fields      `json:"fields,omitempty"`
+	Level   string `json:"level,omitempty"`
+	Time    string `json:"time,omitempty"`
+	Message any    `json:"message,omitempty"`
+	Fields  Fields `json:"fields,omitempty"`
 }
 
 // JSONLogFormatter - default log formatter
 type JSONLogFormatter struct {
-	mu sync.Mutex
+	mu     sync.Mutex
+	pretty bool
 }
 
 // NewJSONFormatter ...
-func NewJSONFormatter() *JSONLogFormatter {
-	return &JSONLogFormatter{}
+func NewJSONFormatter(pretty bool) *JSONLogFormatter {
+	return &JSONLogFormatter{pretty: pretty}
 }
 
 // Format - it's format the output log
@@ -53,8 +54,12 @@ func (d *JSONLogFormatter) Format(log *Logger, l Level, msg any, t time.Time) er
 		Fields:  log.fields,
 	}
 
-	// if the writer not terminal
-	err := json.NewEncoder(log.Writer).Encode(st)
+	enc := json.NewEncoder(log.Writer)
+	if d.pretty {
+		enc.SetIndent("", " ")
+	}
+
+	err := enc.Encode(st)
 	if err != nil {
 		return err
 	}

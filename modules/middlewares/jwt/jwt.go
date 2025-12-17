@@ -18,10 +18,10 @@ func New() *JWT {
 }
 
 // CreateToken generate JWT token.
-func CreateToken(ctx *kira.Context, claims jwt.MapClaims) (string, error) {
+func CreateToken(ctx *kira.Context, claims jwt.Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return token.SignedString([]byte(ctx.Config().GetString("app.key")))
+	return token.SignedString([]byte(ctx.Config().GetString("app.jwt.key")))
 }
 
 // Middleware handler
@@ -65,7 +65,7 @@ func (j *JWT) validateToken(ctx *kira.Context, s string) bool {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return []byte(ctx.Config().GetString("app.key")), nil
+		return []byte(ctx.Config().GetString("app.jwt.key")), nil
 	})
 	if err != nil {
 		return false

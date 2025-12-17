@@ -112,11 +112,25 @@ func (c *Context) Env() string {
 func (c *Context) Error(err error) {
 	// Just panic and the recover will come to save us :)
 	// TODO: later we need something better than this.
-	if kiraErr, ok := err.(*KiraError); ok {
+	if kiraErr, ok := err.(*Error); ok {
 		panic(kiraErr)
 	}
 
 	panic(fmt.Sprint(err))
+}
+
+func (c *Context) Errorf(formatOrErr any, a ...any) {
+	var err error
+	switch v := formatOrErr.(type) {
+	case string:
+		err = fmt.Errorf(v, a...)
+	case error:
+		err = fmt.Errorf(v.Error(), a...)
+	default:
+		err = fmt.Errorf("%v", v)
+	}
+
+	c.Error(err)
 }
 
 // Err checks if the error not empty.

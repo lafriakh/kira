@@ -29,8 +29,8 @@ func getEnv() string {
 }
 
 func getConfig() *config.Config {
-	var files = []string{"./testdata/kira.conf", "./kira.conf", "./config/kira.conf"}
-	var env = fmt.Sprintf("./kira.conf.%s", getEnv())
+	var files = []string{"./testdata/env.conf", "./env.conf", "./config/env.conf"}
+	var env = fmt.Sprintf("./env.conf.%s", getEnv())
 
 	if _, err := os.Stat(env); !os.IsNotExist(err) {
 		files = append(files, env)

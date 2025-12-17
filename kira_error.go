@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -23,15 +24,25 @@ type FieldError struct {
 	Param string `json:"param,omitempty"`
 }
 
-type KiraError struct {
-	Status      StatusCode   `json:"status,omitempty"`
-	Path        Path         `json:"path,omitempty"`
-	Message     string       `json:"message"`
-	// FieldError  string       `json:"error,omitempty"`
-	FieldErrors []FieldError `json:"errors,omitempty"`
-	Timestamp   time.Time    `json:"timestamp"`
+type Error struct {
+	Status      StatusCode      `json:"status,omitempty"`
+	Path        Path            `json:"path,omitempty"`
+	Message     string          `json:"message"`
+	FieldErrors []FieldError    `json:"errors,omitempty"`
+	Timestamp   time.Time       `json:"timestamp"`
+	Frames      []runtime.Frame `json:"frames,omitempty"`
 
 	Err error `json:"-"`
+}
+
+func AsError(err error) (*Error, bool) {
+	var target *Error
+
+	if errors.As(err, &target) {
+		return target, true
+	}
+
+	return nil, false
 }
 
 func E(args ...any) error {
@@ -39,8 +50,9 @@ func E(args ...any) error {
 		panic("call to kira.E with no arguments")
 	}
 
-	e := &KiraError{
+	e := &Error{
 		Timestamp: time.Now(),
+		Status:    500,
 	}
 
 	for _, arg := range args {
@@ -52,7 +64,7 @@ func E(args ...any) error {
 			e.Status = arg
 		case Path:
 			e.Path = arg
-		case *KiraError:
+		case *Error:
 			copy := *arg
 			e.Err = &copy
 		case validator.ValidationErrors:
@@ -79,7 +91,7 @@ func E(args ...any) error {
 	return e
 }
 
-func (e *KiraError) Error() string {
+func (e *Error) Error() string {
 	b := new(bytes.Buffer)
 
 	if e.Status != 0 {
