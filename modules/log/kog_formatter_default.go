@@ -48,7 +48,7 @@ func (d *DefaultLogFormatter) Format(log *Logger, l Level, msg any, t time.Time)
 	level := Strings[l]
 
 	// if the writer not terminal
-	_, err := fmt.Fprintf(log.Writer, "%s %s %s", time.Now().Format(time.RFC3339Nano), level, msg)
+	_, err := fmt.Fprintf(log.Writer, "%s %s %s", time.Now().UTC().Format(time.RFC3339Nano), level, msg)
 	if err != nil {
 		return err
 	}

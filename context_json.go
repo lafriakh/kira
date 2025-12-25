@@ -9,7 +9,7 @@ import (
 var ErrEmptyBody = E("empty body", http.StatusBadRequest)
 
 // JSON - Send response as json.
-func (c *Context) JSON(data any, code ...int) {
+func (c *Context) JSON(data any, code ...int) error {
 	c.Response().Header().Set("Content-Type", "application/json")
 
 	// Status statusCode
@@ -18,9 +18,7 @@ func (c *Context) JSON(data any, code ...int) {
 	}
 
 	// Encode data
-	if err := json.NewEncoder(c.Response()).Encode(data); err != nil {
-		c.Error(err)
-	}
+	return json.NewEncoder(c.Response()).Encode(data)
 }
 
 // WantsJSON - validate if the request wants a json response.

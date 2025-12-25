@@ -9,12 +9,13 @@ import (
 )
 
 func TestContextJSON(t *testing.T) {
-	s := endpoint("POST", "/json", func(c *kira.Context) {
+	s := endpoint("POST", "/json", func(c *kira.Context) error {
 		if c.WantsJSON() {
 			c.JSON(struct {
 				Message string `json:"message"`
 			}{"json"})
 		}
+		return nil
 	})
 
 	// Request
@@ -40,7 +41,7 @@ func TestContextJSON(t *testing.T) {
 }
 
 func TestContextJSONParse(t *testing.T) {
-	s := endpoint("POST", "/json", func(c *kira.Context) {
+	s := endpoint("POST", "/json", func(c *kira.Context) error {
 		if c.WantsJSON() {
 			st := struct {
 				Message string `json:"message"`
@@ -53,9 +54,10 @@ func TestContextJSONParse(t *testing.T) {
 				return
 			}
 			c.WriteString("parsed")
-			return
+			return nil
 		}
 		c.WriteString("not parsed")
+		return nil
 	})
 
 	jsonStr := []byte("{\"message\":\"json\"}\n")

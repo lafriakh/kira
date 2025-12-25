@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/julienschmidt/httprouter"
 	"github.com/lafriakh/kira/modules/config"
 	"github.com/lafriakh/kira/modules/log"
-	"github.com/julienschmidt/httprouter"
 )
 
 var hero = `   __ __   _             
@@ -70,7 +70,7 @@ func New() *App {
 				env:        app.Env,
 				statusCode: http.StatusOK,
 				requestID:  uuid.New().String(),
-				startAt:    time.Now(),
+				startAt:    time.Now().UTC(),
 			}
 		},
 	}
@@ -130,32 +130,16 @@ func (app *App) NotFound(ctx HandlerFunc) {
 }
 
 // default not found handler.
-func defaultNotFound(ctx *Context) {
+func defaultNotFound(ctx *Context) error {
 	if ctx.WantsJSON() {
 		ctx.Response().Header().Set("Content-Type", "application/json")
 	} else {
 		ctx.Response().Header().Set("Content-Type", "text/html")
 	}
-	ctx.Status(http.StatusNotFound)
+	ctx.SetStatusCode(http.StatusNotFound)
 
-	// JSON
-	if ctx.WantsJSON() {
-		// Json response
-		ctx.JSON(struct {
-			Error   int    `json:"error"`
-			Message string `json:"message"`
-		}{http.StatusNotFound, "404 Not Found"})
-		return
-	}
-
-	// HTML
-	// Validate if the template exists
-	if ctx.ViewExists("errors/404") {
-		err := ctx.View("errors/404")
-		if err != nil {
-			ctx.Error(err)
-		}
-	} else {
-		ctx.WriteHTML("<!DOCTYPE html><html><head><title>404 Not Found</title></head><body>404 Not Found</body></html>")
+	return &Error{
+		Status:    http.StatusNotFound,
+		Message:   http.StatusText(http.StatusNotFound),
 	}
 }

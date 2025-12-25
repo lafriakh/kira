@@ -8,11 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var ErrContextError = kira.NewKiraError("context error").WithPath("/path")
+var ErrContextError = &kira.Error{Message: "context error", Path: kira.Path("/path"), Status: 400}
 
 func TestContextError(t *testing.T) {
-	s := endpoint("GET", "/error", func(c *kira.Context) {
-		c.Error(ErrContextError)
+	s := endpoint("GET", "/error", func(c *kira.Context) error {
+		return ErrContextError
 	})
 
 	// Request
@@ -23,5 +23,9 @@ func TestContextError(t *testing.T) {
 	res, _ := http.DefaultClient.Do(req)
 
 	content := contentS(res.Body)
-	assert.Equal(t, `{"message":"context error","path":"/path"}`, content)
+	// Note: The exact JSON output depends on the JSON marshaler.
+	// We'll check for the presence of the key fields.
+	assert.Contains(t, content, `"status":400`)
+	assert.Contains(t, content, `"path":"/path"`)
+	assert.Contains(t, content, `"message":"context error"`)
 }

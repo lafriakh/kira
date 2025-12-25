@@ -48,7 +48,7 @@ func (d *JSONLogFormatter) Format(log *Logger, l Level, msg any, t time.Time) er
 
 	// Struct
 	st := JSONFormatter{
-		Time:    time.Now().Format(time.RFC3339Nano),
+		Time:    time.Now().UTC().Format(time.RFC3339Nano),
 		Level:   level,
 		Message: msg,
 		Fields:  log.fields,

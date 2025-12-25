@@ -2,7 +2,7 @@ package helpers
 
 import "fmt"
 
-func ExampleDiffrence() {
+func ExampleDifference() {
 	slice1 := []string{"Rachid", "Lafriakh", "foo", "bar"}
 	slice2 := []string{"Rachid", "Lafriakh"}
 

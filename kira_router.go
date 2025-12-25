@@ -1,13 +1,28 @@
 package kira
 
 import (
-	"github.com/julienschmidt/httprouter"
 	"net/http"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/julienschmidt/httprouter"
+)
+
+type Method string
+
+const (
+	GET     Method = "GET"
+	HEAD    Method = "HEAD"
+	POST    Method = "POST"
+	PUT     Method = "PUT"
+	PATCH   Method = "PATCH"
+	DELETE  Method = "DELETE"
+	OPTIONS Method = "OPTIONS"
 )
 
 // Route represent a route.
 type Route struct {
-	Method      string
+	Method      Method
 	Path        string
 	HandlerFunc HandlerFunc
 	Middlewares []Middleware
@@ -30,7 +45,7 @@ func (app *App) RegisterRoutes() *httprouter.Router {
 		// Register the route.
 		app.Router.Handler(
 			// Method
-			route.Method,
+			string(route.Method),
 			// Path
 			route.Path,
 			// Handler
@@ -47,8 +62,13 @@ func (app *App) RegisterRoutes() *httprouter.Router {
 
 	// Handle panic
 	app.Router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err any) {
-		var panicHandler = func(ctx *Context) {
-			defaultPanic(ctx, err)
+		var panicHandler = func(ctx *Context) error {
+			ctx.Log().Error(err)
+
+			return &Error{
+				Status:  http.StatusInternalServerError,
+				Message: http.StatusText(http.StatusInternalServerError),
+			}
 		}
 		buildRoute(app, panicHandler, nil)(w, r)
 	}
@@ -60,8 +80,8 @@ func (app *App) RegisterRoutes() *httprouter.Router {
 // This function will take the middleware and the next handler as a parameters.
 // Then return a handler that accept the next handler as a parameter.
 func buildMiddleware(middleware Middleware, next HandlerFunc) HandlerFunc {
-	return func(ctx *Context) {
-		middleware.Middleware(ctx, next)
+	return func(ctx *Context) error {
+		return middleware.Middleware(ctx, next)
 	}
 }
 
@@ -89,19 +109,25 @@ func buildRoute(app *App, handler HandlerFunc, rm []Middleware) http.HandlerFunc
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Root context.
 		ctx := app.pool.Get().(*Context)
+
+		// Reset context before use
 		ctx.response = &responseWriter{w, ctx}
 		ctx.request = r
+		ctx.data = make(map[string]any)
+		ctx.statusCode = http.StatusOK
+		ctx.startAt = time.Now().UTC()
+		ctx.requestID = uuid.New().String()
+
 		// Release the pool
 		defer app.pool.Put(ctx)
 
 		// Run the chain
 		handler(ctx)
-
 	}
 }
 
 // create new route instance.
-func createRoute(app *App, method string, path string, handler HandlerFunc, middlewares ...Middleware) *Route {
+func createRoute(app *App, method Method, path string, handler HandlerFunc, middlewares ...Middleware) *Route {
 	route := &Route{
 		Method:      method,
 		Path:        path,
@@ -117,37 +143,37 @@ func createRoute(app *App, method string, path string, handler HandlerFunc, midd
 
 // Get Handle GET requests.
 func (app *App) Get(path string, ctx HandlerFunc, middlewares ...Middleware) *Route {
-	return createRoute(app, "GET", path, ctx, middlewares...)
+	return createRoute(app, GET, path, ctx, middlewares...)
 }
 
 // Head Handle HEAD requests.
 func (app *App) Head(path string, ctx HandlerFunc, middlewares ...Middleware) *Route {
-	return createRoute(app, "HEAD", path, ctx, middlewares...)
+	return createRoute(app, HEAD, path, ctx, middlewares...)
 }
 
 // Post Handle POST requests.
 func (app *App) Post(path string, ctx HandlerFunc, middlewares ...Middleware) *Route {
-	return createRoute(app, "POST", path, ctx, middlewares...)
+	return createRoute(app, POST, path, ctx, middlewares...)
 }
 
 // Put Handle PUT requests.
 func (app *App) Put(path string, ctx HandlerFunc, middlewares ...Middleware) *Route {
-	return createRoute(app, "PUT", path, ctx, middlewares...)
+	return createRoute(app, PUT, path, ctx, middlewares...)
 }
 
 // Patch Handle PATCH requests.
 func (app *App) Patch(path string, ctx HandlerFunc, middlewares ...Middleware) *Route {
-	return createRoute(app, "PATCH", path, ctx, middlewares...)
+	return createRoute(app, PATCH, path, ctx, middlewares...)
 }
 
 // Delete Handle DELETE requests.
 func (app *App) Delete(path string, ctx HandlerFunc, middlewares ...Middleware) *Route {
-	return createRoute(app, "DELETE", path, ctx, middlewares...)
+	return createRoute(app, DELETE, path, ctx, middlewares...)
 }
 
 // Options Handle OPTIONS requests.
 func (app *App) Options(path string, ctx HandlerFunc, middlewares ...Middleware) *Route {
-	return createRoute(app, "OPTIONS", path, ctx, middlewares...)
+	return createRoute(app, OPTIONS, path, ctx, middlewares...)
 }
 
 // ServeFiles serve files in the given root.

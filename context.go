@@ -1,9 +1,7 @@
 package kira
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/lafriakh/kira/modules/log"
@@ -12,7 +10,7 @@ import (
 )
 
 // HandlerFunc - Type to define context function
-type HandlerFunc func(*Context)
+type HandlerFunc func(*Context) error
 
 // Context ...
 type Context struct {
@@ -28,19 +26,6 @@ type Context struct {
 	// environment
 	env string
 }
-
-// NewContext - Create new instance of Context
-// func NewContext(w http.ResponseWriter, r *http.Request, app *App) *Context {
-// 	ctx := contextPool.Get().(*Context)
-// 	ctx.response = w
-// 	ctx.request = r
-// 	ctx.Logger = app.logger
-// 	ctx.Configs = app.Configs
-// 	ctx.data = make(map[string]any)
-// 	ctx.env = app.Env
-//
-// 	return ctx
-// }
 
 // SetRequest change the current request with the given one.
 func (c *Context) SetRequest(r *http.Request) {
@@ -70,7 +55,6 @@ func (c *Context) Redirect(url string, code int) {
 // Log gets the Log instance.
 func (c *Context) Log() *log.Logger {
 	return setupLogger(c.Config(), c.logger.Writer, log.Fields{
-		"status":     strconv.Itoa(c.StatusCode()),
 		"method":     c.Request().Method,
 		"path":       c.Request().RequestURI,
 		"duration":   time.Since(c.startAt).String(),
@@ -106,37 +90,4 @@ func (c *Context) RequestID() string {
 // Env gets the application environment.
 func (c *Context) Env() string {
 	return c.env
-}
-
-// Error stop the request with panic
-func (c *Context) Error(err error) {
-	// Just panic and the recover will come to save us :)
-	// TODO: later we need something better than this.
-	if kiraErr, ok := err.(*Error); ok {
-		panic(kiraErr)
-	}
-
-	panic(fmt.Sprint(err))
-}
-
-func (c *Context) Errorf(formatOrErr any, a ...any) {
-	var err error
-	switch v := formatOrErr.(type) {
-	case string:
-		err = fmt.Errorf(v, a...)
-	case error:
-		err = fmt.Errorf(v.Error(), a...)
-	default:
-		err = fmt.Errorf("%v", v)
-	}
-
-	c.Error(err)
-}
-
-// Err checks if the error not empty.
-// It's will redirect the error to Error method if there an error.
-func (c *Context) Err(err error) {
-	if err != nil {
-		c.Error(err)
-	}
 }

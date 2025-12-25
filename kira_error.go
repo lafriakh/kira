@@ -29,7 +29,7 @@ type Error struct {
 	Path        Path            `json:"path,omitempty"`
 	Message     string          `json:"message"`
 	FieldErrors []FieldError    `json:"errors,omitempty"`
-	Timestamp   time.Time       `json:"timestamp"`
+	Timestamp   time.Time       `json:"timestamp,omitzero"`
 	Frames      []runtime.Frame `json:"frames,omitempty"`
 
 	Err error `json:"-"`
@@ -51,7 +51,7 @@ func E(args ...any) error {
 	}
 
 	e := &Error{
-		Timestamp: time.Now(),
+		Timestamp: time.Now().UTC(),
 		Status:    500,
 	}
 
@@ -93,7 +93,7 @@ func E(args ...any) error {
 
 func (e *Error) Error() string {
 	b := new(bytes.Buffer)
-
+	
 	if e.Status != 0 {
 		pad(b, ": ")
 		fmt.Fprint(b, http.StatusText(int(e.Status)))

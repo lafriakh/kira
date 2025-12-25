@@ -1,5 +1,10 @@
 package kira
 
+import (
+	"net/http"
+	"strconv"
+)
+
 // Log - log middleware
 type Log struct{}
 
@@ -9,8 +14,16 @@ func NewLogger() *Log {
 }
 
 // Middleware handler.
-func (l *Log) Middleware(ctx *Context, next HandlerFunc) {
-	next(ctx)
+func (l *Log) Middleware(ctx *Context, next HandlerFunc) error {
+	err := next(ctx)
+	status := ctx.StatusCode()
+	if status == 0 {
+		status = http.StatusOK
+	}
 
-	ctx.Log().Info("Request")
+	ctx.Log().WithField(
+		"status", strconv.Itoa(status),
+	).Info("Request")
+
+	return err
 }

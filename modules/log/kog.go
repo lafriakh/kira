@@ -2,6 +2,7 @@
 package log
 
 import (
+	"maps"
 	"fmt"
 	"io"
 	stdlog "log"
@@ -42,7 +43,7 @@ func New(w io.Writer, f Formatter, fields Fields) *Logger {
 // log writes the output for a logging event.
 func (l *Logger) log(level Level, msg any) {
 	if l.level <= level {
-		if err := l.formatter.Format(l, level, msg, time.Now()); err != nil {
+		if err := l.formatter.Format(l, level, msg, time.Now().UTC()); err != nil {
 			stdlog.Printf("error logging: %s", err)
 		}
 	}
@@ -71,9 +72,7 @@ func (l *Logger) SetWriter(w io.Writer) {
 
 func (l *Logger) WithField(key string, value any) *Logger {
 	fields := Fields{}
-	for k, v := range l.fields {
-		fields[k] = v
-	}
+	maps.Copy(fields, l.fields)
 	fields[key] = value
 
 	return New(l.Writer, l.formatter, fields)

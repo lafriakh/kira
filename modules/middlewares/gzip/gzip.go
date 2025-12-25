@@ -24,7 +24,7 @@ func New() Gzip {
 type Gzip struct{}
 
 // Middleware ...
-func (g Gzip) Middleware(ctx *kira.Context, next kira.HandlerFunc) {
+func (g Gzip) Middleware(ctx *kira.Context, next kira.HandlerFunc) error {
 	gzPool.New = func() any {
 		gz, err := gzip.NewWriterLevel(ioutil.Discard, ctx.Config().GetInt("gzip.level", gzip.DefaultCompression))
 		if err != nil {
@@ -34,8 +34,7 @@ func (g Gzip) Middleware(ctx *kira.Context, next kira.HandlerFunc) {
 	}
 
 	if !strings.Contains(ctx.Request().Header.Get("Accept-Encoding"), "gzip") {
-		next(ctx)
-		return
+		return next(ctx)
 	}
 
 	// GZip
@@ -55,7 +54,7 @@ func (g Gzip) Middleware(ctx *kira.Context, next kira.HandlerFunc) {
 	}()
 
 	// Next to the next handler.
-	next(ctx)
+	return next(ctx)
 }
 
 // Custom ResponseWriter for gzip

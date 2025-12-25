@@ -9,63 +9,32 @@ import (
 	"github.com/lafriakh/kira"
 )
 
-// JWT - Middleware.
-type JWT struct{}
+var (
+	ErrInvalidToken = kira.E("Invalid token", kira.StatusCode(http.StatusUnauthorized))
+)
 
-// New - return JWT instance
-func New() *JWT {
-	return &JWT{}
+type JWT struct {
+	secret string
+}
+
+func New(secret string) *JWT {
+	return &JWT{secret: secret}
 }
 
 // CreateToken generate JWT token.
-func CreateToken(ctx *kira.Context, claims jwt.Claims) (string, error) {
+func CreateToken(secret string, claims jwt.Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return token.SignedString([]byte(ctx.Config().GetString("app.jwt.key")))
+	return token.SignedString([]byte(secret))
 }
 
-// Middleware handler
-func (j *JWT) Middleware(ctx *kira.Context, next kira.HandlerFunc) {
-	// The token string that will be validated.
-	var tokenString string
-	// token error
-	var err error
-
-	// From where we should grap the token.
-	lookup := strings.Split(ctx.Config().GetString("jwt.lookup", "header:Authorization"), ":")
-
-	switch lookup[0] {
-	case "header": // From header
-		tokenString, err = j.fromHeader(ctx, lookup[1])
-		if err != nil {
-			ctx.WriteStatus(http.StatusUnauthorized)
-			return
-		}
-	case "cookie": // From cookie
-		tokenString, err = j.fromCookie(ctx, lookup[1])
-		if err != nil {
-			ctx.WriteStatus(http.StatusUnauthorized)
-			return
-		}
-	}
-
-	// Validate if the request has a valide JWT Token.
-	if j.validateToken(ctx, tokenString) {
-		next(ctx)
-	} else {
-		ctx.WriteStatus(http.StatusUnauthorized)
-		return
-	}
-}
-
-func (j *JWT) validateToken(ctx *kira.Context, s string) bool {
+func ValidateToken(secret, s string) bool {
 	token, err := jwt.Parse(s, func(token *jwt.Token) (any, error) {
-		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return []byte(ctx.Config().GetString("app.jwt.key")), nil
+		return []byte(secret), nil
 	})
 	if err != nil {
 		return false
@@ -76,6 +45,36 @@ func (j *JWT) validateToken(ctx *kira.Context, s string) bool {
 	}
 
 	return false
+}
+
+// Middleware handler
+func (j *JWT) Middleware(ctx *kira.Context, next kira.HandlerFunc) error {
+	// The token string that will be validated.
+	var tokenString string
+	var err error
+
+	// From where we should grap the token.
+	lookup := strings.Split(ctx.Config().GetString("jwt.lookup", "header:Authorization"), ":")
+
+	switch lookup[0] {
+	case "header": // From header
+		tokenString, err = j.fromHeader(ctx, lookup[1])
+		if err != nil {
+			return err
+		}
+	case "cookie": // From cookie
+		tokenString, err = j.fromCookie(ctx, lookup[1])
+		if err != nil {
+			return err
+		}
+	}
+
+	// Validate if the request has a valide JWT Token.
+	if ValidateToken(j.secret, tokenString) {
+		return next(ctx)
+	} else {
+		return ErrInvalidToken
+	}
 }
 
 // Extract the token from the request header.

@@ -10,7 +10,7 @@ import (
 )
 
 func TestContextData(t *testing.T) {
-	s := endpoint("GET", "/data", func(c *kira.Context) {
+	s := endpoint("GET", "/data", func(c *kira.Context) error {
 		// Set the data to the context.
 		c.SetData("key", "value")
 
@@ -26,6 +26,7 @@ func TestContextData(t *testing.T) {
 		if c.GetData("key").(string) != "value" {
 			t.Errorf("expect: `value`, have: %s", c.GetData("key").(string))
 		}
+		return nil
 	})
 
 	// Request
@@ -42,11 +43,12 @@ func TestContextDataFromMiddleware(t *testing.T) {
 	app := kira.New()
 	app.Use(middleware.NewContextData())
 
-	app.Get("/middleware", func(c *kira.Context) {
+	app.Get("/middleware", func(c *kira.Context) error {
 		// Get the data from the context.
 		if c.GetData("foo").(string) != "bar" {
 			t.Errorf("expect: `value`, have: %s", c.GetData("key").(string))
 		}
+		return nil
 	})
 
 	// Server
