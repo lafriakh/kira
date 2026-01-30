@@ -12,27 +12,36 @@ func (rec *Recover) Middleware(ctx *Context, next HandlerFunc) error {
 	err := next(ctx)
 
 	if err != nil {
-		if ctx.WantsJSON() {
-			ctx.Response().Header().Set("Content-Type", "application/json")
-			var defaultErr = &Error{
-				Message: http.StatusText(http.StatusInternalServerError),
-				Status:  http.StatusInternalServerError,
-			}
-
-			if e, ok := AsError(err); ok {
-				ctx.SetStatusCode(int(e.Status))
-				ctx.Status(int(e.Status))
-				_ = ctx.JSON(e)
-			} else {
-				ctx.SetStatusCode(int(defaultErr.Status))
-				ctx.Status(int(defaultErr.Status))
-				_ = ctx.JSON(defaultErr)
-			}
-			ctx.Log().Error(err)
-		}
-
-		return err
+		handleError(ctx, err)
 	}
 
 	return nil
+}
+
+func handleError(ctx *Context, err error) {
+	// Log the error
+	defer ctx.Log().Error(err)
+
+	// Error
+	var e error
+
+	// Status code
+	code := http.StatusInternalServerError
+	if err, ok := AsError(err); ok {
+		e = err
+		code = int(err.Status)
+	} else {
+		e = &Error{
+			Message: http.StatusText(code),
+			Status:  code,
+		}
+	}
+	ctx.SetStatusCode(code)
+	ctx.Status(code)
+
+	if ctx.WantsJSON() {
+		ctx.JSON(e)
+	} else {
+		ctx.WriteString(http.StatusText(ctx.StatusCode()))
+	}
 }

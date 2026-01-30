@@ -13,12 +13,14 @@ func New() *Example {
 }
 
 // Middleware handler.
-func (e *Example) Middleware(c *kira.Context, next kira.HandlerFunc) {
+func (e *Example) Middleware(c *kira.Context, next kira.HandlerFunc) error {
 	// Next handlerr
 	c.WriteString("before \n")
 
-	next(c)
+	err := next(c)
 
 	c.WriteString("after \n")
 	// next.ServeHTTP(ctx.Response(), ctx.Request())
+
+	return err
 }

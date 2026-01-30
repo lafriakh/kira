@@ -44,8 +44,8 @@ func (k *Config) Set(key string, value any) {
 }
 
 func (k *Config) Has(key string) bool {
-	k.lock.Lock()
-	defer k.lock.Unlock()
+	k.lock.RLock()
+	defer k.lock.RUnlock()
 
 	return k.bucket[key] != nil
 }

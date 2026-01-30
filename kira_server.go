@@ -3,10 +3,12 @@ package kira
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/lafriakh/kira/modules/config"
 )
@@ -16,36 +18,35 @@ func (app *App) StartServer(server *http.Server) {
 	// Gracefully shutdown
 	go app.GracefullyShutdown(server)
 
-	// Start server
-	app.logger.Infof("Starting HTTP server, Listening at %s", "http://"+server.Addr)
-	if err := server.ListenAndServe(); err != http.ErrServerClosed {
-		app.logger.Errorf("%v", err)
-	} else {
-		app.logger.Infof("Server closed!")
+	listener, err := net.Listen("tcp", server.Addr)
+	if err != nil {
+		app.logger.Panicf("%v", err)
 	}
-}
 
-// StartTLSServer - start an TLS server provided by: Let's Encrypt.
-// To generate keys:
-//  - openssl genrsa -out server.key 2048
-//  - openssl ecparam -genkey -name secp384r1 -out server.key
-//  - openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650
-func (app *App) StartTLSServer(server *http.Server) {
-	// Gracefully shutdown
-	go app.GracefullyShutdown(server)
-
-	// Start server
-	app.logger.Infof("Starting HTTPS server, Listening at %q \n", "https://"+server.Addr)
-
-	// Certificate & Key
-	certificateFile := app.Configs.GetString("server.tls_certificate", "./server.crt")
-	keyFile := app.Configs.GetString("server.tls_key", "./server.key")
-
-	if err := server.ListenAndServeTLS(certificateFile, keyFile); err != http.ErrServerClosed {
-		app.logger.Errorf("%v", err)
-	} else {
-		app.logger.Infof("Server closed!")
+	// On start
+	if app.lifecyles.onStart != nil {
+		go app.lifecyles.onStart()
 	}
+
+	if !app.Configs.GetBool("server.tls", false) {
+		app.logger.Infof("Starting HTTP server, Listening at %s", "http://"+server.Addr)
+
+		if err := server.Serve(listener); err != http.ErrServerClosed {
+			app.logger.Panicf("%v", err)
+		}
+	} else {
+		app.logger.Infof("Starting HTTPS server, Listening at %s", "https://"+server.Addr)
+		// To generate keys:
+		//   - openssl genrsa -out server.key 2048
+		//   - openssl ecparam -genkey -name secp384r1 -out server.key
+		//   - openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650
+		certificateFile := app.Configs.GetString("server.tls_certificate", "./server.crt")
+		keyFile := app.Configs.GetString("server.tls_key", "./server.key")
+		if err := server.ServeTLS(listener, certificateFile, keyFile); err != http.ErrServerClosed {
+			app.logger.Panicf("%v", err)
+		}
+	}
+	app.logger.Info("Server closed")
 }
 
 // GracefullyShutdown the server
@@ -56,16 +57,20 @@ func (app *App) GracefullyShutdown(server *http.Server) {
 	sig := <-sigquit
 	app.logger.Infof("Signal to shutdown the server: %+v", sig)
 
-	if err := server.Shutdown(context.Background()); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
 		app.logger.Fatalf("Unable to shutdown server: %v", err)
+	}
+
+	// Shutdown callback
+	if app.lifecyles.onShutdown != nil {
+		app.lifecyles.onShutdown()
 	}
 }
 
-func serverAddr(config *config.Config, addr ...string) string {
-	if len(addr) > 0 {
-		return addr[0]
-	}
-
+func getServerAddr(config *config.Config) string {
 	// Server HOST/PORT
 	host := config.GetString("server.host", "127.0.0.1")
 	port := config.GetInt("server.port", 8080)

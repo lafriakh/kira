@@ -63,7 +63,7 @@ func (l *Logger) SetLevel(level Level) {
 	l.level = level
 }
 
-// SetWriter sets the level severity for the logger.
+// SetWriter sets the logger Writer
 func (l *Logger) SetWriter(w io.Writer) {
 	l.lock.Lock()
 	defer l.lock.Unlock()

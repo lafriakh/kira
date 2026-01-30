@@ -19,10 +19,10 @@ type Context struct {
 	logger   *log.Logger
 	configs  *config.Config
 	// The data associated with the request.
-	data       map[string]any
-	statusCode int
-	requestID  string
-	startAt    time.Time
+	data               map[string]any
+	statusCode         int
+	requestID          string
+	startAt            time.Time
 	// environment
 	env string
 }

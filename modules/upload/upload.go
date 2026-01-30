@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/lafriakh/kira"
 	"github.com/lafriakh/kira/modules/config"
@@ -21,6 +22,8 @@ const (
 	GB = 1 << 30
 )
 
+const fileHeaderSize = 512
+
 var (
 	errNotImage           = errors.New("the file not an image")
 	errWhileWriteFile     = errors.New("error while write a file")
@@ -28,7 +31,40 @@ var (
 	errFileTypeNotAllowed = "the file type: %s not allowed"
 	errFileSize           = "the file %s size: %s too big"
 	errFileRequired       = "the field %s is required"
+	errPathTraversal      = errors.New("invalid file path")
 )
+
+// safeJoin ensures the joined path is within the base directory.
+func safeJoin(base, subpath string) (string, error) {
+	// Clean the base and subpath
+	base = filepath.Clean(base)
+	subpath = filepath.Clean(subpath)
+
+	// Get absolute paths
+	absBase, err := filepath.Abs(base)
+	if err != nil {
+		return "", err
+	}
+
+	absPath, err := filepath.Abs(filepath.Join(base, subpath))
+	if err != nil {
+		return "", err
+	}
+
+	// Ensure the final path is within the base directory
+	// Use filepath.Rel to check if absPath is inside absBase
+	rel, err := filepath.Rel(absBase, absPath)
+	if err != nil {
+		return "", err
+	}
+
+	// Check for path traversal (starts with ".." or is absolute)
+	if strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
+		return "", errPathTraversal
+	}
+
+	return absPath, nil
+}
 
 // Supported images types.
 var isImage = []string{
@@ -223,7 +259,7 @@ func (u *Upload) Upload() (Uploaded, error) {
 
 func (u *Upload) getFileType(file multipart.File) (string, error) {
 	// Create a buffer to store the header of the file in
-	fileHeaderBuffer := make([]byte, 512)
+	fileHeaderBuffer := make([]byte, fileHeaderSize)
 
 	// Copy the headers into the FileHeader buffer
 	if _, err := file.Read(fileHeaderBuffer); err != nil {
@@ -243,9 +279,13 @@ func (u *Upload) getFilePath(fname string) string {
 }
 
 func writeFile(config *config.Config, file multipart.File, dst string) (os.FileInfo, error) {
-	location := filepath.Join(config.GetString("upload.path", "./storage"), dst)
+	base := config.GetString("upload.path", "./storage")
+	location, err := safeJoin(base, dst)
+	if err != nil {
+		return nil, err
+	}
 
-	f, err := os.OpenFile(location, os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile(location, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return nil, err
 	}
@@ -266,9 +306,13 @@ func writeFile(config *config.Config, file multipart.File, dst string) (os.FileI
 }
 
 func writeImage(config *config.Config, file multipart.File, dst string, utype string) (os.FileInfo, error) {
-	location := filepath.Join(config.GetString("upload.path", "./storage"), dst)
+	base := config.GetString("upload.path", "./storage")
+	location, err := safeJoin(base, dst)
+	if err != nil {
+		return nil, err
+	}
 
-	f, err := os.OpenFile(location, os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile(location, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return nil, err
 	}

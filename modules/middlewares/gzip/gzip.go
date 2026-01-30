@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"compress/gzip"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
@@ -13,7 +12,10 @@ import (
 	"github.com/lafriakh/kira"
 )
 
-var gzPool sync.Pool
+var (
+	gzPool sync.Pool
+	once   sync.Once
+)
 
 // New ...
 func New() Gzip {
@@ -25,13 +27,16 @@ type Gzip struct{}
 
 // Middleware ...
 func (g Gzip) Middleware(ctx *kira.Context, next kira.HandlerFunc) error {
-	gzPool.New = func() any {
-		gz, err := gzip.NewWriterLevel(ioutil.Discard, ctx.Config().GetInt("gzip.level", gzip.DefaultCompression))
-		if err != nil {
-			panic(err)
+	once.Do(func() {
+		level := ctx.Config().GetInt("gzip.level", gzip.DefaultCompression)
+		gzPool.New = func() any {
+			gz, err := gzip.NewWriterLevel(io.Discard, level)
+			if err != nil {
+				panic(err)
+			}
+			return gz
 		}
-		return gz
-	}
+	})
 
 	if !strings.Contains(ctx.Request().Header.Get("Accept-Encoding"), "gzip") {
 		return next(ctx)
@@ -40,7 +45,7 @@ func (g Gzip) Middleware(ctx *kira.Context, next kira.HandlerFunc) error {
 	// GZip
 	gz := gzPool.Get().(*gzip.Writer)
 	defer gzPool.Put(gz)
-	defer gz.Reset(ioutil.Discard)
+	defer gz.Reset(io.Discard)
 	gz.Reset(ctx.Response())
 
 	ctx.Response().Header().Set("Content-Encoding", "gzip")

@@ -11,7 +11,6 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type StatusCode int
 type Path string
 type FieldError struct {
 	// Field is the name of the struct field that failed validation.
@@ -25,7 +24,7 @@ type FieldError struct {
 }
 
 type Error struct {
-	Status      StatusCode      `json:"status,omitempty"`
+	Status      int             `json:"status,omitempty"`
 	Path        Path            `json:"path,omitempty"`
 	Message     string          `json:"message"`
 	FieldErrors []FieldError    `json:"errors,omitempty"`
@@ -52,7 +51,7 @@ func E(args ...any) error {
 
 	e := &Error{
 		Timestamp: time.Now().UTC(),
-		Status:    500,
+		Status:    http.StatusInternalServerError,
 	}
 
 	for _, arg := range args {
@@ -60,7 +59,9 @@ func E(args ...any) error {
 		case string:
 			e.Message = arg
 			e.Err = errors.New(arg)
-		case StatusCode:
+		// case StatusCode:
+		// 	e.Status = arg
+		case int:
 			e.Status = arg
 		case Path:
 			e.Path = arg
@@ -93,7 +94,7 @@ func E(args ...any) error {
 
 func (e *Error) Error() string {
 	b := new(bytes.Buffer)
-	
+
 	if e.Status != 0 {
 		pad(b, ": ")
 		fmt.Fprint(b, http.StatusText(int(e.Status)))

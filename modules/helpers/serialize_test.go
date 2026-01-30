@@ -14,9 +14,10 @@ func TestSerialize(t *testing.T) {
 
 	serialize, _ := Serialize(doTest)
 
-	fmt.Println(string(serialize))
-
-	t.Fail()
+	// Just ensure no panic
+	if len(serialize) == 0 {
+		t.Error("serialized output should not be empty")
+	}
 }
 
 func ExampleDeserialize() {

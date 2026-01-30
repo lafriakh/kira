@@ -5,11 +5,11 @@ import "net/http"
 // responseWriter for kira framework.
 type responseWriter struct {
 	http.ResponseWriter
-	ctx *Context
+	ctx      *Context
 }
 
 // WriteHeader - store the header to use it later.
-func (recorder *responseWriter) WriteHeader(code int) {
-	recorder.ctx.SetStatusCode(code)
-	recorder.ResponseWriter.WriteHeader(code)
+func (r *responseWriter) WriteHeader(code int) {
+	r.ctx.SetStatusCode(code)
+	r.ResponseWriter.WriteHeader(code)
 }

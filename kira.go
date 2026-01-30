@@ -7,11 +7,12 @@ package kira
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"net/http"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/lafriakh/kira/modules/config"
@@ -41,6 +42,10 @@ type App struct {
 	Router      *httprouter.Router
 	Configs     *config.Config
 	Env         string
+	lifecyles   struct {
+		onStart    func()
+		onShutdown func()
+	}
 	// Not found handler
 	NotFoundHandler HandlerFunc
 
@@ -48,8 +53,7 @@ type App struct {
 	logger *log.Logger
 
 	// Context pool
-	pool  *sync.Pool
-	mutex sync.Mutex
+	pool *sync.Pool
 }
 
 // New init the framework
@@ -78,6 +82,9 @@ func New() *App {
 	// return App instance
 	return app
 }
+func (app *App) Logger() *log.Logger {
+	return app.logger
+}
 
 // Run the framework
 func (app *App) Run(args ...any) *App {
@@ -89,39 +96,29 @@ func (app *App) Run(args ...any) *App {
 	// Timezone
 	tz := app.Configs.GetString("app.timezone")
 	if tz != "" {
-		os.Setenv("TZ", tz)
+		if err := os.Setenv("TZ", tz); err != nil {
+			fmt.Fprint(os.Stderr, err)
+		}
 	}
 
 	// Server
 	server := &http.Server{
 		Handler: app.Router,
+		Addr:    getServerAddr(app.Configs),
 	}
 
-	var config any
-	if len(args) > 0 {
-		config = args[0]
-	} else {
-		config = nil
-	}
-
-	switch config := config.(type) {
-	case *http.Server:
-		server = config
-		server.Handler = app.Router
-	case string:
-		server.Addr = serverAddr(app.Configs, config)
-	default:
-		server.Addr = serverAddr(app.Configs)
-	}
-
-	if !app.Configs.GetBool("server.tls", false) {
-		app.StartServer(server)
-	} else {
-		app.StartTLSServer(server)
-	}
+	app.StartServer(server)
 
 	// App instance
 	return app
+}
+
+func (app *App) OnStart(handler func()) {
+	app.lifecyles.onStart = handler
+}
+
+func (app *App) OnShutdown(handler func()) {
+	app.lifecyles.onShutdown = handler
 }
 
 // NotFound custom not found handler.
@@ -139,7 +136,11 @@ func defaultNotFound(ctx *Context) error {
 	ctx.SetStatusCode(http.StatusNotFound)
 
 	return &Error{
-		Status:    http.StatusNotFound,
-		Message:   http.StatusText(http.StatusNotFound),
+		Status:  http.StatusNotFound,
+		Message: http.StatusText(http.StatusNotFound),
 	}
+}
+
+func noopHandler(ctx *Context) error {
+	return nil
 }

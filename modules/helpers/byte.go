@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"crypto/rand"
-	"fmt"
 	"math"
 	"strconv"
 )
@@ -12,7 +11,6 @@ func RandomBytes(length int) []byte {
 	b := make([]byte, length)
 	_, err := rand.Read(b)
 	if err != nil {
-		fmt.Println("error:", err)
 		return nil
 	}
 	return b

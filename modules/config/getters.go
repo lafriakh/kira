@@ -15,7 +15,8 @@ func (k *Config) GetDefault(key string, def any) any {
 
 // GetString - return config as string type.
 func (k *Config) GetString(key string, def ...string) string {
-	if k.Get(key) == nil {
+	value := k.Get(key)
+	if value == nil {
 		if len(def) > 0 {
 			return def[0]
 		}
@@ -23,19 +24,20 @@ func (k *Config) GetString(key string, def ...string) string {
 		return ""
 	}
 
-	return k.Get(key).(string)
+	return value.(string)
 }
 
 // GetInt - return config as int type.
 func (k *Config) GetInt(key string, def ...int) int {
-	if k.Get(key) == nil {
+	value := k.Get(key)
+	if value == nil {
 		if len(def) > 0 {
 			return def[0]
 		}
 		return 0
 	}
 
-	return int(k.Get(key).(int64))
+	return int(value.(int64))
 }
 
 // GetInt64 - return config as int type.
@@ -45,26 +47,28 @@ func (k *Config) GetInt64(key string, def ...int) int64 {
 
 // GetFloat64 - return config as float64 type.
 func (k *Config) GetFloat64(key string, def ...float64) float64 {
-	if k.Get(key) == nil {
+	value := k.Get(key)
+	if value == nil {
 		if len(def) > 0 {
 			return def[0]
 		}
 		return 0
 	}
 
-	return k.Get(key).(float64)
+	return value.(float64)
 }
 
 // GetBool - return config as int type.
 func (k *Config) GetBool(key string, def ...bool) bool {
-	if k.Get(key) == nil {
+	value := k.Get(key)
+	if value == nil {
 		if len(def) > 0 {
 			return def[0]
 		}
 		return false
 	}
 
-	return k.Get(key).(bool)
+	return value.(bool)
 }
 
 // // GetArray return a slice of empty interfaces.

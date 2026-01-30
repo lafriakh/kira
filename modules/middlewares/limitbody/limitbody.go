@@ -1,13 +1,14 @@
 package limitbody
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/lafriakh/kira"
 )
 
 var (
-	ErrRequestTooLarge = kira.E("Request too large", kira.StatusCode(http.StatusRequestEntityTooLarge))
+	ErrRequestTooLarge = kira.E("Request too large", http.StatusRequestEntityTooLarge)
 )
 
 // MB - one MB.
@@ -23,14 +24,25 @@ func New() *Limitbody {
 
 // Middleware handler.
 func (l *Limitbody) Middleware(ctx *kira.Context, next kira.HandlerFunc) error {
-	if ctx.Request().ContentLength > ctx.Config().GetInt64("server.body_limit", 32)*MB {
+	limit := ctx.Config().GetInt64("server.body_limit", 32) * MB
+
+	// Early rejection if Content-Length is known and exceeds limit
+	if ctx.Request().ContentLength > 0 && ctx.Request().ContentLength > limit {
 		return ErrRequestTooLarge
 	}
 
 	ctx.Request().Body = http.MaxBytesReader(
 		ctx.Response(),
-		ctx.Request().Body, ctx.Config().GetInt64("server.body_limit", 32)*MB,
+		ctx.Request().Body, limit,
 	)
 
-	return next(ctx)
+	err := next(ctx)
+
+	// Convert http.MaxBytesError to ErrRequestTooLarge
+	var maxBytesErr *http.MaxBytesError
+	if errors.As(err, &maxBytesErr) {
+		return ErrRequestTooLarge
+	}
+
+	return err
 }

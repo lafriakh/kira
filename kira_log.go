@@ -27,10 +27,10 @@ func setupWriter(config *config.Config) io.Writer {
 	case "file":
 		return &lumberjack.Logger{
 			Filename:   config.GetString("log.file", "./storage/logs/kira.log"),
-			MaxSize:    config.GetInt("log.file_max_size", 100),
-			MaxBackups: config.GetInt("log.file_max_backups", 3),
-			MaxAge:     config.GetInt("log.file_max_age", 28),
-			Compress:   config.GetBool("log.file_max_compress", false),
+			MaxSize:    config.GetInt("log.file.max_size", 100),
+			MaxBackups: config.GetInt("log.file.max_backups", 3),
+			MaxAge:     config.GetInt("log.file.max_age", 28),
+			Compress:   config.GetBool("log.file.max_compress", false),
 		}
 	}
 

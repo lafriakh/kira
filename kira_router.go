@@ -53,16 +53,20 @@ func (app *App) RegisterRoutes() *httprouter.Router {
 		)
 	}
 
-	// 404
+	// Handle not found requests
 	if app.NotFoundHandler == nil {
 		app.Router.NotFound = buildRoute(app, defaultNotFound, nil)
 	} else {
 		app.Router.NotFound = buildRoute(app, app.NotFoundHandler, nil)
 	}
 
+	// Handle options requests
+	app.Router.GlobalOPTIONS = buildRoute(app, noopHandler, nil)
+
 	// Handle panic
 	app.Router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err any) {
 		var panicHandler = func(ctx *Context) error {
+			ctx.Log().Warn("Panic")
 			ctx.Log().Error(err)
 
 			return &Error{
@@ -94,16 +98,16 @@ func buildRoute(app *App, handler HandlerFunc, rm []Middleware) http.HandlerFunc
 		}
 	}
 
-	// Assign default middlewares to all handlers.
-	for _, defaultMiddleware := range defaultMiddlewares() {
-		handler = buildMiddleware(defaultMiddleware, handler)
-	}
-
 	// Global Middlewares
 	if len(app.Middlewares) > 0 {
 		for _, m := range app.Middlewares {
 			handler = buildMiddleware(m, handler)
 		}
+	}
+
+	// Assign default middlewares to all handlers.
+	for _, defaultMiddleware := range defaultMiddlewares() {
+		handler = buildMiddleware(defaultMiddleware, handler)
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +126,10 @@ func buildRoute(app *App, handler HandlerFunc, rm []Middleware) http.HandlerFunc
 		defer app.pool.Put(ctx)
 
 		// Run the chain
-		handler(ctx)
+		err := handler(ctx)
+		if err != nil {
+			handleError(ctx, err)
+		}
 	}
 }
 

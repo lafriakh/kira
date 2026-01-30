@@ -8,11 +8,17 @@ import (
 	"io"
 )
 
+var errInvalidKeySize = errors.New("invalid key size: must be 16, 24, or 32 bytes")
+
 // Encrypt encrypts data using 256-bit AES-GCM.  This both hides the content of
 // the data and provides a check that it hasn't been altered. Output takes the
 // form nonce|ciphertext|tag where '|' indicates concatenation.
 func Encrypt(plaintext []byte, key []byte) (ciphertext []byte, err error) {
-	block, err := aes.NewCipher(key[:])
+	if len(key) != 16 && len(key) != 24 && len(key) != 32 {
+		return nil, errInvalidKeySize
+	}
+
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +41,11 @@ func Encrypt(plaintext []byte, key []byte) (ciphertext []byte, err error) {
 // the data and provides a check that it hasn't been altered. Expects input
 // form nonce|ciphertext|tag where '|' indicates concatenation.
 func Decrypt(ciphertext []byte, key []byte) (plaintext []byte, err error) {
-	block, err := aes.NewCipher(key[:])
+	if len(key) != 16 && len(key) != 24 && len(key) != 32 {
+		return nil, errInvalidKeySize
+	}
+
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}

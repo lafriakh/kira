@@ -38,7 +38,7 @@ import "github.com/lafriakh/kira"
 func main() {
     app := kira.New()
 
-    app.Get("/", func (c *kira.Context) {
+    app.Get("/", func (c *kira.Context) error {
         c.String("Hello, Kira :)")
     })
 

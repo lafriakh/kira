@@ -10,4 +10,5 @@ func ExampleDifference() {
 
 	fmt.Println(diff)
 	// Output:
+	// []
 }

@@ -33,9 +33,9 @@ func Parse(src io.Reader) (map[string]any, error) {
 			continue
 		}
 
-		afterString := after.(string)
+		afterString := after
 
-		if afterString[:1] == `"` && afterString[len(afterString)-1:] == `"` { // String
+		if len(afterString) >= 2 && afterString[:1] == `"` && afterString[len(afterString)-1:] == `"` { // String
 			data[before[:]] = afterString[1 : len(afterString)-1]
 		} else if toInt, err := strconv.ParseInt(afterString, 10, 64); err == nil { // Number
 			data[before[:]] = toInt
@@ -56,19 +56,17 @@ func Parse(src io.Reader) (map[string]any, error) {
 }
 
 func beforeDelimiter(value string, a string) string {
-	// Get substring before a string.
+	before, _, ok := strings.Cut(value, a)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(before)
+}
+
+func afterDelimiter(value string, a string) string {
 	pos := strings.Index(value, a)
 	if pos == -1 {
 		return ""
-	}
-	return strings.TrimSpace(value[0:pos])
-}
-
-func afterDelimiter(value string, a string) any {
-	// Get substring after a string.
-	pos := strings.Index(value, a)
-	if pos == -1 {
-		return nil
 	}
 	return strings.TrimSpace(value[pos+1:])
 }

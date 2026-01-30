@@ -29,8 +29,11 @@ func (c *Context) WantsJSON() bool {
 // DecodeJSON - convert json from request body to interface.
 func (c *Context) DecodeJSON(dst any) error {
 	err := json.NewDecoder(c.Request().Body).Decode(dst)
-	if err == io.EOF {
-		return ErrEmptyBody
+	if err != nil {
+		if err == io.EOF {
+			return ErrEmptyBody
+		}
+		return err
 	}
 
 	return nil
